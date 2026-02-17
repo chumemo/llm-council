@@ -10,7 +10,7 @@ export default function Sidebar({
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h1>Consejo LLM</h1>
+        <h1>Consejo CrediBusiness LLM</h1>
         <button className="new-conversation-btn" onClick={onNewConversation}>
           + Nueva conversación
         </button>

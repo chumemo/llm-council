@@ -5,9 +5,10 @@ from fpdf import FPDF
 from datetime import datetime
 
 # Definición de colores
-COLOR_PRIMARY = (10, 40, 90)   # Azul oscuro institucional
+COLOR_PRIMARY = (0, 123, 255)   # Azul corporativo (ejemplo basado en solicitud)
+COLOR_TEXT_HEADER = (10, 40, 90) # Azul oscuro para textos principales
 COLOR_SECONDARY = (100, 100, 100) # Gris oscuro
-COLOR_ACCENT = (230, 240, 255) # Azul muy claro para fondos
+COLOR_ACCENT = (245, 245, 245) # Gris muy claro para fondos
 
 class PDFReport(FPDF):
     def __init__(self):
@@ -25,21 +26,24 @@ class PDFReport(FPDF):
         self.set_auto_page_break(auto=True, margin=15)
 
     def header(self):
-        # Insertar imagen de encabezado si existe
+        # Logo en esquina superior izquierda
         header_path = "header.jpg"
         if os.path.exists(header_path):
-            # Asumiendo A4 (210mm ancho), dejamos márgenes pequeños
-            # x=0, y=0, w=210 para cubrir todo el ancho superior
-            self.image(header_path, x=0, y=0, w=210)
-            self.ln(35) # Espacio para bajar después de la imagen (ajustar según altura real de la imagen visualmente)
-        else:
-            # Fallback si no hay imagen
-            self.set_fill_color(*COLOR_PRIMARY)
-            self.rect(0, 0, 210, 30, 'F')
-            self.set_font(self.default_font, 'B', 20)
-            self.set_text_color(255, 255, 255)
-            self.cell(0, 20, 'LLM Council Report', 0, 1, 'C')
-            self.ln(10)
+            self.image(header_path, x=10, y=10, w=40) 
+        
+        # Título de la aplicación alineado a la derecha o centro
+        self.set_y(15)
+        self.set_x(60) # Mover a la derecha del logo
+        self.set_font(self.default_font, 'B', 24)
+        self.set_text_color(*COLOR_TEXT_HEADER)
+        self.cell(0, 10, 'Consejo CrediBusiness LLM', 0, 1, 'R')
+        
+        # Línea separadora
+        self.ln(10)
+        self.set_draw_color(*COLOR_PRIMARY)
+        self.set_line_width(0.5)
+        self.line(10, self.get_y(), 200, self.get_y())
+        self.ln(10)
 
     def footer(self):
         self.set_y(-15)
@@ -49,10 +53,15 @@ class PDFReport(FPDF):
 
     def chapter_title(self, label):
         self.set_font(self.default_font, 'B', 14)
-        self.set_text_color(*COLOR_PRIMARY)
-        self.set_fill_color(*COLOR_ACCENT)
-        self.cell(0, 10, label, 0, 1, 'L', True)
-        self.ln(4)
+        self.set_text_color(*COLOR_TEXT_HEADER)
+        # Borde izquierdo decorativo
+        self.set_line_width(1)
+        self.set_draw_color(*COLOR_PRIMARY)
+        self.line(10, self.get_y(), 10, self.get_y() + 8)
+        
+        self.set_x(12)
+        self.cell(0, 8, label, 0, 1, 'L')
+        self.ln(2)
 
     def chapter_body(self, text):
         self.set_font(self.default_font, '', 11)
@@ -92,11 +101,12 @@ def generate_pdf(conversation_id, output_dir="data/pdf"):
     pdf = PDFReport()
     pdf.add_page()
     
-    # Metadatos del reporte
-    pdf.set_font(pdf.default_font, 'B', 18)
+    # Título del Reporte (Metadata)
+    pdf.set_font(pdf.default_font, 'B', 16)
     pdf.set_text_color(*COLOR_PRIMARY)
     pdf.multi_cell(0, 10, data.get('title', 'Conversación Sin Título'))
-    self_y = pdf.get_y()
+    
+    pdf.ln(2)
     
     pdf.set_font(pdf.default_font, '', 10)
     pdf.set_text_color(*COLOR_SECONDARY)
