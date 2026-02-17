@@ -11,6 +11,8 @@ import asyncio
 
 from . import storage
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
+from .generate_report import generate_pdf
+from fastapi.responses import FileResponse
 
 app = FastAPI(title="LLM Council API")
 
@@ -197,3 +199,21 @@ async def send_message_stream(conversation_id: str, request: SendMessageRequest)
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
+
+
+@app.get("/api/conversations/{conversation_id}/export")
+async def export_conversation_pdf(conversation_id: str):
+    """Generate and return a PDF report for the conversation."""
+    conversation = storage.get_conversation(conversation_id)
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    pdf_path = generate_pdf(conversation_id)
+    if pdf_path and os.path.exists(pdf_path):
+        return FileResponse(
+            pdf_path, 
+            media_type="application/pdf", 
+            filename=f"LLM_Council_Report_{conversation_id}.pdf"
+        )
+    else:
+        raise HTTPException(status_code=500, detail="Failed to generate PDF report")

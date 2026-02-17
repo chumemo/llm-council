@@ -11,6 +11,7 @@ export default function ChatInterface({
   isLoading,
 }) {
   const [input, setInput] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -34,6 +35,31 @@ export default function ChatInterface({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!conversation) return;
+    setIsExporting(true);
+    try {
+      const response = await fetch(`http://localhost:8001/api/conversations/${conversation.id}/export`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `LLM_Council_Report_${conversation.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        console.error('Failed to export PDF');
+      }
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -119,6 +145,28 @@ export default function ChatInterface({
 
         <div ref={messagesEndRef} />
       </div>
+
+      {conversation && conversation.messages.length > 0 && (
+        <button
+          className="export-button"
+          onClick={handleExport}
+          disabled={isExporting}
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '20px',
+            padding: '8px 16px',
+            backgroundColor: '#10285A',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            opacity: isExporting ? 0.7 : 1
+          }}
+        >
+          {isExporting ? 'Generando...' : 'Exportar Reporte PDF'}
+        </button>
+      )}
 
       {conversation.messages.length === 0 && (
         <form className="input-form" onSubmit={handleSubmit}>
