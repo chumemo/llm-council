@@ -10,6 +10,7 @@ export default function Sidebar({
   return (
     <div className="sidebar">
       <div className="sidebar-header">
+        <img src="/logo.png" alt="Logo" style={{ height: '40px', marginBottom: '10px' }} />
         <h1>Consejo CrediBusiness LLM</h1>
         <button className="new-conversation-btn" onClick={onNewConversation}>
           + Nueva conversación

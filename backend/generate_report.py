@@ -27,7 +27,7 @@ class PDFReport(FPDF):
 
     def header(self):
         # Logo en esquina superior izquierda
-        header_path = "header.jpg"
+        header_path = "logo.png"
         if os.path.exists(header_path):
             self.image(header_path, x=10, y=10, w=40) 
         
@@ -132,14 +132,47 @@ def generate_pdf(conversation_id, output_dir="data/pdf"):
         pdf.chapter_title("Consulta Inicial")
         for msg in user_msgs:
              pdf.chapter_body(msg.get('content', ''))
-        pdf.ln(5)
     
-    # 2. Respuesta Sintetizada (Etapa 3) - Lo más importante
+    # FORZAR NUEVA PÁGINA PARA RESPUESTAS INDIVIDUALES
+    pdf.add_page()
+    
+    # 2. Apéndice: Respuestas Individuales (Etapa 1)
+    # El usuario pidió: Pregunta -> Respuestas Miembros -> Final
     assistant_msgs = [m for m in messages if m.get('role') == 'assistant']
     
+    pdf.chapter_title("Respuestas de los Miembros del Consejo")
+    pdf.ln(5)
+    
+    for msg in assistant_msgs:
+        if 'stage1' in msg and msg['stage1']:
+            for i, resp in enumerate(msg['stage1']):
+                if i > 0:
+                    pdf.add_page() # Cada modelo en una hoja nueva (o al menos separado si es la misma sección)
+                    # Reiniciar título de sección si cambiamos de hoja para claridad
+                    pdf.chapter_title("Respuestas de los Miembros del Consejo (Cont.)")
+                    pdf.ln(5)
+                
+                model_full = resp.get('model', 'Modelo Desconocido')
+                model_simple = model_full.split('/')[1] if '/' in model_full else model_full
+                
+                # Encabezado del Modelo
+                pdf.set_font(pdf.default_font, 'B', 14)
+                pdf.set_text_color(*COLOR_TEXT_HEADER)
+                pdf.cell(0, 10, f"Miembro: {model_simple}", 0, 1, 'L')
+                pdf.ln(2)
+                
+                # Cuerpo de la respuesta
+                pdf.chapter_body(resp.get('response', ''))
+
+    # FORZAR NUEVA PÁGINA PARA RESPUESTA FINAL
+    pdf.add_page()
+
+    # 3. Respuesta Final del Presidente (Etapa 3)
     for msg in assistant_msgs:
         if 'stage3' in msg and msg['stage3']:
-            pdf.chapter_title("Respuesta Final del Consejo")
+            pdf.chapter_title("Resolución Final del Presidente")
+            pdf.ln(5)
+            
             stage3 = msg['stage3']
             response_text = stage3.get('response', '') if isinstance(stage3, dict) else str(stage3)
             
@@ -151,28 +184,12 @@ def generate_pdf(conversation_id, output_dir="data/pdf"):
                 if '/' in model_name:
                     model_name = model_name.split('/')[1]
             
-            pdf.set_font(pdf.default_font, 'I', 10)
+            pdf.set_font(pdf.default_font, 'B', 12)
             pdf.set_text_color(*COLOR_PRIMARY)
             pdf.cell(0, 6, f"Presidente de la Sesión: {model_name}", 0, 1)
-            pdf.ln(2)
+            pdf.ln(5)
             
             pdf.chapter_body(response_text)
-            pdf.ln(10)
-
-    # 3. Apéndice: Respuestas Individuales (Etapa 1)
-    # Crear nueva página para el apéndice para no saturar el reporte principal
-    pdf.add_page()
-    pdf.chapter_title("Apéndice: Respuestas Individuales")
-    
-    for msg in assistant_msgs:
-        if 'stage1' in msg and msg['stage1']:
-            for resp in msg['stage1']:
-                model_full = resp.get('model', 'Modelo Desconocido')
-                model_simple = model_full.split('/')[1] if '/' in model_full else model_full
-                
-                pdf.add_section_header(f"Modelo: {model_simple}")
-                pdf.chapter_body(resp.get('response', ''))
-                pdf.ln(5)
 
     try:
         pdf.output(output_path)
